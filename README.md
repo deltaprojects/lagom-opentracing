@@ -15,6 +15,12 @@ OpenTracing is a vendor neutral specification for tracing distributed systems. F
 
 This package provides simple helper methods for dealing with the OpenTracing headers in Lagom service calls.
 
+### SBT
+
+```sbt
+    libraryDependencies += "com.deltaprojects" %% "lagom-opentracing" % "0.1.0"
+```
+
 ### Server Usage
 ```scala
 

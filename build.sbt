@@ -3,7 +3,7 @@ import sbt.Keys.publishArtifact
 lazy val root = (project in file(".")).
   settings(
     inThisBuild(List(
-      organization := "se.deltaprojects",
+      organization := "com.deltaprojects",
       scalaVersion := "2.12.6",
       version      := "0.1.0-SNAPSHOT",
       description := "OpenTracing helpers for the Lagom Framework"
