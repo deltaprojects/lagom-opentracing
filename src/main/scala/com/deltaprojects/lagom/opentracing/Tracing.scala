@@ -1,4 +1,4 @@
-package lagom.opentracing
+package com.deltaprojects.lagom.opentracing
 
 import com.lightbend.lagom.scaladsl.api.transport.RequestHeader
 import com.lightbend.lagom.scaladsl.server.ServerServiceCall

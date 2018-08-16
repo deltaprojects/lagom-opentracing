@@ -1,4 +1,4 @@
-package lagom.opentracing
+package com.deltaprojects.lagom.opentracing
 
 import org.scalatest._
 
