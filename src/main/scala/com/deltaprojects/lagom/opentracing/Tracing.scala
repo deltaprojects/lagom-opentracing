@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory
 import scala.concurrent.{ExecutionContext, Future}
 
 // adapted from https://github.com/yurishkuro/opentracing-tutorial/tree/master/java/src/main/java/lesson03
-private class RequestBuilderCarrier(val headers: RequestHeader) extends TextMap {
+private[lagom] class RequestBuilderCarrier(val headers: RequestHeader) extends TextMap {
   private var h = headers
   override def iterator = throw new UnsupportedOperationException("carrier is write-only")
 
