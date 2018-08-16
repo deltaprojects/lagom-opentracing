@@ -14,23 +14,18 @@ lazy val root = (project in file(".")).
     crossScalaVersions := Seq("2.11.12", "2.12.6"),
     libraryDependencies ++= Seq(
       scalaTest % Test,
-      "com.lightbend.lagom" %% "lagom-scaladsl-api" % "1.4.7",
-      "com.lightbend.lagom" %% "lagom-scaladsl-server" % "1.4.7",
-      "io.opentracing" % "opentracing-api" % "0.31.0",
-      "io.opentracing" % "opentracing-util" % "0.31.0"
+      "com.lightbend.lagom" %% "lagom-scaladsl-api" % "1.4.7" % "provided",
+      "com.lightbend.lagom" %% "lagom-scaladsl-server" % "1.4.7" % "provided",
+      "io.opentracing" % "opentracing-api" % "0.31.0" % "provided",
+      "io.opentracing" % "opentracing-util" % "0.31.0" % "provided"
     ),
     publishMavenStyle := true,
     publishArtifact in Test := false,
     pomIncludeRepository := (_ ⇒ false),
-    publishTo := Some(
-      if (version.value.trim.endsWith("SNAPSHOT"))
-        "snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
-      else
-        "releases" at "https://oss.sonatype.org/service/local/staging/deploy/maven2"
-    ),
+    publishTo := None,
     startYear := Some(2018),
     organizationHomepage := Some(url("https://github.com/deltaprojects")),
-    developers := Developer("jonaslan", "Jonas Lantto", "", url("https://github.com/jonaslan")) :: Nil,
+    developers := Developer("jonaslan", "Jonas Lantto", "jonas.lantto@deltaprojects.com", url("https://github.com/jonaslan")) :: Nil,
     scmInfo := Some(
       ScmInfo(
         browseUrl = url("https://github.com/deltaprojects/lagom-opentracing.git"),
