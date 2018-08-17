@@ -2,6 +2,7 @@ package com.deltaprojects.lagom.opentracing
 
 import com.lightbend.lagom.scaladsl.api.transport.RequestHeader
 import com.lightbend.lagom.scaladsl.server.ServerServiceCall
+import io.opentracing.contrib.concurrent.TracedExecutionContext
 import io.opentracing.propagation.{Format, TextMap, TextMapExtractAdapter}
 import io.opentracing.tag.Tags
 import io.opentracing.util.GlobalTracer
@@ -66,19 +67,21 @@ object Tracing {
         try {
           val parentSpan = tracer.extract(Format.Builtin.HTTP_HEADERS, new TextMapExtractAdapter(requestHeader.headers.toMap.asJava))
           val scope = parentSpan match {
-            case p: SpanContext => tracer.buildSpan(opName).asChildOf(p).withTag(Tags.SPAN_KIND.getKey, Tags.SPAN_KIND_SERVER).startActive(true)
-            case _ => tracer.buildSpan(opName).withTag(Tags.SPAN_KIND.getKey, Tags.SPAN_KIND_SERVER).startActive(true)
+            case p: SpanContext => tracer.buildSpan(opName).asChildOf(p).withTag(Tags.SPAN_KIND.getKey, Tags.SPAN_KIND_SERVER).startActive(false)
+            case _ => tracer.buildSpan(opName).withTag(Tags.SPAN_KIND.getKey, Tags.SPAN_KIND_SERVER).startActive(false)
           }
+          val tracedExecutionContext = new TracedExecutionContext(executionContext)
           new ServerServiceCall[Request, Response] {
             override def invoke(request: Request): Future[Response] = {
               serviceCall(scope).invoke(request).map(resp => {
+                scope.span().finish()
                 scope.close()
                 resp
-              })
+              })(tracedExecutionContext)
             }
           }
         } catch {
-          case _: IllegalArgumentException => serviceCall(tracer.buildSpan(opName).startActive(true))
+          case _: IllegalArgumentException => serviceCall(tracer.buildSpan(opName).startActive(false))
         }
       } else {
         logger.error("No Tracer registered when trying to trace!")

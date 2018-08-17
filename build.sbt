@@ -1,6 +1,5 @@
 import Dependencies._
 import sbt.Keys.publishArtifact
-import sbt.Path
 
 lazy val root = (project in file(".")).
   settings(
@@ -18,7 +17,8 @@ lazy val root = (project in file(".")).
       "com.lightbend.lagom" %% "lagom-scaladsl-api" % "1.4.7" % "provided",
       "com.lightbend.lagom" %% "lagom-scaladsl-server" % "1.4.7" % "provided",
       "io.opentracing" % "opentracing-api" % "0.31.0" % "provided",
-      "io.opentracing" % "opentracing-util" % "0.31.0" % "provided"
+      "io.opentracing" % "opentracing-util" % "0.31.0" % "provided",
+      "io.opentracing.contrib" %% "opentracing-scala-concurrent" % "0.0.4"
     ),
     publishMavenStyle := true,
     releaseCrossBuild := true,
