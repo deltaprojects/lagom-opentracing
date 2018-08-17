@@ -10,6 +10,7 @@ import io.opentracing.{Scope, SpanContext, Tracer}
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 // adapted from https://github.com/yurishkuro/opentracing-tutorial/tree/master/java/src/main/java/lesson03
 private[lagom] class RequestBuilderCarrier(val headers: RequestHeader) extends TextMap {
@@ -33,16 +34,24 @@ object Tracing {
     */
   def addTracingHeaders(requestHeader: RequestHeader): RequestHeader = {
     val tracer: Tracer = GlobalTracer.get()
-    if (tracer.activeSpan() != null) {
-      Tags.SPAN_KIND.set(tracer.activeSpan(), Tags.SPAN_KIND_CLIENT)
-      Tags.HTTP_METHOD.set(tracer.activeSpan(), requestHeader.method.name)
-      Tags.HTTP_URL.set(tracer.activeSpan(), requestHeader.uri.toString)
-      val r = new RequestBuilderCarrier(requestHeader)
-      tracer.inject(tracer.activeSpan().context(), Format.Builtin.HTTP_HEADERS, r)
-      r.get
-    } else {
-      logger.warn("No active span found when adding tracing headers. Did you forget to activate a span?")
-      requestHeader
+    try {
+      if (tracer.activeSpan() != null) {
+        Tags.SPAN_KIND.set(tracer.activeSpan(), Tags.SPAN_KIND_CLIENT)
+        Tags.HTTP_METHOD.set(tracer.activeSpan(), requestHeader.method.name)
+        Tags.HTTP_URL.set(tracer.activeSpan(), requestHeader.uri.toString)
+        logger.info(requestHeader.principal.toString)
+        
+        val carrier = new RequestBuilderCarrier(requestHeader)
+        tracer.inject(tracer.activeSpan().context(), Format.Builtin.HTTP_HEADERS, carrier)
+        carrier.get
+      } else {
+        logger.warn("No active span found when adding tracing headers. Did you forget to activate a span?")
+        requestHeader
+      }
+    } catch {
+      case e:Throwable =>
+        logger.error(e.getMessage)
+        requestHeader
     }
   }
 
@@ -73,11 +82,18 @@ object Tracing {
           val tracedExecutionContext = new TracedExecutionContext(executionContext)
           new ServerServiceCall[Request, Response] {
             override def invoke(request: Request): Future[Response] = {
-              serviceCall(scope).invoke(request).map(resp => {
-                scope.span().finish()
-                scope.close()
-                resp
-              })(tracedExecutionContext)
+              serviceCall(scope).invoke(request).andThen {
+                case Success(resp) =>
+                  scope.span().setTag(Tags.HTTP_STATUS.getKey, 200)
+                  scope.span().finish()
+                  scope.close()
+                  resp
+                case Failure(t) =>
+                  scope.span().setTag(Tags.ERROR.getKey, true)
+                  scope.span().finish()
+                  scope.close()
+                  t
+              }(tracedExecutionContext)
             }
           }
         } catch {

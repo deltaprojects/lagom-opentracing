@@ -19,14 +19,18 @@ This package provides simple helper methods for dealing with the OpenTracing hea
 ### SBT
 
 ```sbt
-    libraryDependencies += "com.deltaprojects" %% "lagom-opentracing" % "0.1.0"
+
+libraryDependencies += "com.deltaprojects" %% "lagom-opentracing" % "0.1.0"
+
 ```
 
 When loading your services you should register a global tracer
 ```scala
+
 val tracer: Tracer = ... // your favourite Tracer implementation
 
 GlobalTracer.register(tracer)
+
 ```
 
 ### Server Usage
