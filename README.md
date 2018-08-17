@@ -1,5 +1,5 @@
 # OpenTracing for the Lagom Framework
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.deltaprojects.lagom-opentracing/lagom-opentracing/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.deltaprojects.lagom-opentracing/lagom-opentracing)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.deltaprojects/lagom-opentracing_2.11/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.deltaprojects/lagom-opentracing)
 
 > Note that this software comes without warranty. It is used in production at Delta Projects, but it may not be suited for your use case.
 > Lightbend provides commercial OpenTracing support in the form of Lightbend Telemetry https://developer.lightbend.com/docs/cinnamon/2.5.x/home.html
