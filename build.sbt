@@ -1,14 +1,15 @@
 import Dependencies._
 import sbt.Keys.publishArtifact
+import sbt.Path
+
 lazy val root = (project in file(".")).
   settings(
     inThisBuild(List(
       organization := "com.deltaprojects",
       scalaVersion := "2.12.6",
-      version      := "0.1.0-SNAPSHOT",
       description := "OpenTracing helpers for the Lagom Framework"
     )),
-    licenses := Seq("MIT No Attribution" → url("https://github.com/aws/mit-0")),
+    licenses := Seq("MIT-0" → url("https://github.com/aws/mit-0")),
     homepage := Some(url("https://deltaprojects.com")),
     name := "lagom-opentracing",
     crossScalaVersions := Seq("2.11.12", "2.12.6"),
@@ -20,9 +21,17 @@ lazy val root = (project in file(".")).
       "io.opentracing" % "opentracing-util" % "0.31.0" % "provided"
     ),
     publishMavenStyle := true,
+    releaseCrossBuild := true,
+    releasePublishArtifactsAction := PgpKeys.publishSigned.value,
     publishArtifact in Test := false,
     pomIncludeRepository := (_ ⇒ false),
-    publishTo := None,
+    publishTo := {
+      val nexus = "https://oss.sonatype.org/"
+      if (isSnapshot.value)
+        Some("snapshots" at nexus + "content/repositories/snapshots")
+      else
+        Some("releases"  at nexus + "service/local/staging/deploy/maven2")
+    },
     startYear := Some(2018),
     organizationHomepage := Some(url("https://github.com/deltaprojects")),
     developers := Developer("jonaslan", "Jonas Lantto", "jonas.lantto@deltaprojects.com", url("https://github.com/jonaslan")) :: Nil,
