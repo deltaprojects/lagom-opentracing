@@ -34,9 +34,17 @@ This package provides simple helper methods for dealing with the OpenTracing hea
 
 ```
 
+Note that there is no need to close the scope manually, it will be closed automatically when the handler returns.
+
 ### Client Usage
+When loading your services you should register a global tracer
 ```scala
-    val tracer: Tracer = ... // your favourite Tracer implementation
+val tracer: Tracer = ... // your favourite Tracer implementation
+
+GlobalTracer.register(tracer)
+```
+
+```scala
     val scope = tracer.buildSpan("Handling your service").startActive(true)
 
     yourServiceClient
@@ -51,6 +59,8 @@ This package provides simple helper methods for dealing with the OpenTracing hea
 ```
 
 ## TODO
-- [ ] Publish artifacts
 - [ ] Implement Tests
 - [ ] Support adding arbitrary OpenTracing header Tags
+- [ ] Support the Java API
+
+Pull requests welcome! :)
