@@ -58,17 +58,17 @@ Note that there is no need to close the scope manually, it will be closed automa
 
 ```scala
 
-    val scope = tracer.buildSpan("Handling your service").startActive(true)
+val scope = tracer.buildSpan("Handling your service").startActive(true)
 
-    yourServiceClient
-    .handleRequestHeaders(addTracingHeaders)
-    .yourServiceHandler
-    .invoke()
-    .map(response => {
-        scope.span.log("Received response")
-        ...
-        scope.close()
-    })
+yourServiceClient
+.handleRequestHeaders(addTracingHeaders)
+.yourServiceHandler
+.invoke()
+.map(response => {
+    scope.span.log("Received response")
+    ...
+    scope.close()
+})
 
 ```
 
