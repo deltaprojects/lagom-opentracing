@@ -80,7 +80,7 @@ You can also trace commands and domain events. Commands and events have the same
 
 ```scala
 
-final case class AddPost(content: PostContent) extends BlogCommand with TracedCommand with ReplyType[AddPostDone]
+final case class AddPost(content: PostContent) extends BlogCommand with TracedCommand[BlogCommand] with ReplyType[AddPostDone]
 
 sealed trait BlogEvent extends AggregateEvent[BlogEvent] with TracedEvent[BlogEvent] {
   override def aggregateTag: AggregateEventShards[BlogEvent] = BlogEvent.Tag
