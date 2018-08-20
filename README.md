@@ -125,6 +125,8 @@ override def behavior: Behavior =
 ```
 
 ## TODO
+- [x] Support HTTP tracing
+- [x] Support CQRS tracing
 - [ ] Implement Tests
 - [ ] Support adding arbitrary OpenTracing header Tags
 - [ ] Support the Java API
