@@ -33,11 +33,17 @@ GlobalTracer.register(tracer)
 
 ```
 
-### Server Usage
+### HTTP requests
+#### Server Usage
 ```scala
 
+class HelloServiceImpl extends HelloService {
+  override def sayHello = ServiceCall { name =>
+    Future.successful(s"Hello $name!")
+  }
+}
   override def yourServiceHandler: ServerServiceCall[Request, Response] =
-    trace("OPERATION_NAME") { implicit scope =>
+    trace("OPERATION_NAME") { scope =>
       ServerServiceCall { request =>
         scope.span.setBaggageItem("user", request.user)
         ...
@@ -48,9 +54,10 @@ GlobalTracer.register(tracer)
 
 Note that there is no need to close the scope manually, it will be closed automatically when the handler returns.
 
-### Client Usage
+#### Client Usage
 
 ```scala
+
     val scope = tracer.buildSpan("Handling your service").startActive(true)
 
     yourServiceClient
@@ -62,6 +69,59 @@ Note that there is no need to close the scope manually, it will be closed automa
         ...
         scope.close()
     })
+
+```
+
+### CQRS
+
+You can also trace commands and domain events. Commands and events have the same API. The examples below are from the official [Lagom documentation](https://www.lagomframework.com/documentation/1.4.x/scala/Home.html), sprinkled with some tracing.
+
+#### Command and Event Usage
+
+```scala
+
+final case class AddPost(content: PostContent) extends BlogCommand with TracedCommand with ReplyType[AddPostDone]
+
+sealed trait BlogEvent extends AggregateEvent[BlogEvent] with TracedEvent[BlogEvent] {
+  override def aggregateTag: AggregateEventShards[BlogEvent] = BlogEvent.Tag
+}
+
+final case class PostAdded(postId: String, content: PostContent) extends BlogEvent
+
+
+override def addPost(id: String) = ServiceCall { request =>
+  val ref = persistentEntities.refFor[Post](id)
+  ref.ask(request.withTracing).map(ack => "OK") // with tracing!
+}
+...
+
+override def behavior: Behavior =
+  Actions()
+    .onCommand[AddPost, AddPostDone] {
+      case (com@AddPost(content), ctx, state) if state.isEmpty =>
+        val scope = com.extractScope("AddPost")
+        ctx.thenPersist(PostAdded(entityId, content).withTracing) { evt => // with more tracing!
+          scope.span.finish()
+          scope.close()
+          ctx.reply(AddPostDone(entityId))
+        }
+    }
+    .onEvent {
+      case (ev@PostAdded(postId, content), state) =>
+        val scope = ev.extractScope("PostAdded")
+        scope.span.setBaggageItem("content", content)
+        scope.span.finish()
+        scope.close()
+        BlogState(Some(content), published = false)
+    }
+    .onReadOnlyCommand[GetPost.type, PostContent] {
+      case (com@GetPost, ctx, state) if !state.isEmpty =>
+        val scope = com.extractScope("GetPost")
+        scope.span.finish()
+        scope.close()
+        ctx.reply(state.content.get)
+    }
+
 ```
 
 ## TODO

@@ -39,8 +39,7 @@ object Tracing {
         Tags.SPAN_KIND.set(tracer.activeSpan(), Tags.SPAN_KIND_CLIENT)
         Tags.HTTP_METHOD.set(tracer.activeSpan(), requestHeader.method.name)
         Tags.HTTP_URL.set(tracer.activeSpan(), requestHeader.uri.toString)
-        logger.info(requestHeader.principal.toString)
-        
+
         val carrier = new RequestBuilderCarrier(requestHeader)
         tracer.inject(tracer.activeSpan().context(), Format.Builtin.HTTP_HEADERS, carrier)
         carrier.get
