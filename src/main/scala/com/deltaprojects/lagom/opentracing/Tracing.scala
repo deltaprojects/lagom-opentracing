@@ -3,6 +3,7 @@ package com.deltaprojects.lagom.opentracing
 import com.lightbend.lagom.scaladsl.api.transport.RequestHeader
 import com.lightbend.lagom.scaladsl.server.ServerServiceCall
 import io.opentracing.contrib.concurrent.TracedExecutionContext
+import io.opentracing.noop.NoopTracerFactory
 import io.opentracing.propagation.{Format, TextMap, TextMapExtractAdapter}
 import io.opentracing.tag.Tags
 import io.opentracing.util.GlobalTracer
@@ -70,37 +71,37 @@ object Tracing {
     (implicit executionContext: ExecutionContext): ServerServiceCall[Request, Response] =
     ServerServiceCall.compose { requestHeader =>
       import scala.collection.JavaConverters._
-      if (GlobalTracer.isRegistered && GlobalTracer.get() != null) {
-        val tracer: Tracer = GlobalTracer.get()
-        try {
-          val parentSpan = tracer.extract(Format.Builtin.HTTP_HEADERS, new TextMapExtractAdapter(requestHeader.headers.toMap.asJava))
-          val scope = parentSpan match {
-            case p: SpanContext => tracer.buildSpan(opName).asChildOf(p).withTag(Tags.SPAN_KIND.getKey, Tags.SPAN_KIND_SERVER).startActive(false)
-            case _ => tracer.buildSpan(opName).withTag(Tags.SPAN_KIND.getKey, Tags.SPAN_KIND_SERVER).startActive(false)
-          }
-          val tracedExecutionContext = new TracedExecutionContext(executionContext)
-          new ServerServiceCall[Request, Response] {
-            override def invoke(request: Request): Future[Response] = {
-              serviceCall(scope).invoke(request).andThen {
-                case Success(resp) =>
-                  scope.span().setTag(Tags.HTTP_STATUS.getKey, 200)
-                  scope.span().finish()
-                  scope.close()
-                  resp
-                case Failure(t) =>
-                  scope.span().setTag(Tags.ERROR.getKey, true)
-                  scope.span().finish()
-                  scope.close()
-                  t
-              }(tracedExecutionContext)
-            }
-          }
-        } catch {
-          case _: IllegalArgumentException => serviceCall(tracer.buildSpan(opName).startActive(false))
-        }
+      val tracer = if (GlobalTracer.isRegistered && GlobalTracer.get() != null) {
+        GlobalTracer.get()
       } else {
-        logger.error("No Tracer registered when trying to trace!")
-        throw new NotImplementedError("No Tracer registered")
+        logger.warn("No tracer found, using No-op tracer")
+        NoopTracerFactory.create()
+      }
+      try {
+        val parentSpan = tracer.extract(Format.Builtin.HTTP_HEADERS, new TextMapExtractAdapter(requestHeader.headers.toMap.asJava))
+        val scope = parentSpan match {
+          case p: SpanContext => tracer.buildSpan(opName).asChildOf(p).withTag(Tags.SPAN_KIND.getKey, Tags.SPAN_KIND_SERVER).startActive(false)
+          case _ => tracer.buildSpan(opName).withTag(Tags.SPAN_KIND.getKey, Tags.SPAN_KIND_SERVER).startActive(false)
+        }
+        val tracedExecutionContext = new TracedExecutionContext(executionContext)
+        new ServerServiceCall[Request, Response] {
+          override def invoke(request: Request): Future[Response] = {
+            serviceCall(scope).invoke(request).andThen {
+              case Success(resp) =>
+                scope.span().setTag(Tags.HTTP_STATUS.getKey, 200)
+                scope.span().finish()
+                scope.close()
+                resp
+              case Failure(t) =>
+                scope.span().setTag(Tags.ERROR.getKey, true)
+                scope.span().finish()
+                scope.close()
+                t
+            }(tracedExecutionContext)
+          }
+        }
+      } catch {
+        case _: IllegalArgumentException => serviceCall(tracer.buildSpan(opName).startActive(false))
       }
     }
 }
