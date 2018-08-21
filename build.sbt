@@ -1,5 +1,6 @@
 import Dependencies._
 import sbt.Keys.publishArtifact
+import ReleaseTransformations._
 
 lazy val root = (project in file(".")).
   settings(
@@ -19,6 +20,20 @@ lazy val root = (project in file(".")).
       "io.opentracing" % "opentracing-api" % "0.31.0" % "provided",
       "io.opentracing" % "opentracing-util" % "0.31.0" % "provided",
       "io.opentracing.contrib" %% "opentracing-scala-concurrent" % "0.0.4"
+    ),
+    releaseProcess := Seq[ReleaseStep](
+      checkSnapshotDependencies,
+      inquireVersions,
+      runClean,
+      runTest,
+      setReleaseVersion,
+      commitReleaseVersion,
+      tagRelease,
+      publishArtifacts,
+      setNextVersion,
+      commitNextVersion,
+      pushChanges,
+      releaseStepCommand("sonatypeRelease")
     ),
     publishMavenStyle := true,
     releaseCrossBuild := true,

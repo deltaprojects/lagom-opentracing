@@ -8,7 +8,7 @@ import io.opentracing.propagation.{Format, TextMap, TextMapExtractAdapter}
 import io.opentracing.tag.Tags
 import io.opentracing.util.GlobalTracer
 import io.opentracing.{Scope, SpanContext, Tracer}
-import org.slf4j.LoggerFactory
+import org.slf4j.Logger
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
@@ -26,8 +26,6 @@ private[lagom] class RequestBuilderCarrier(val headers: RequestHeader) extends T
 }
 
 object Tracing {
-  private val logger = LoggerFactory.getLogger(Tracing.getClass)
-
   /**
     * Add tracing information to request headers
     * @param requestHeader - request headers
@@ -45,18 +43,12 @@ object Tracing {
         tracer.inject(tracer.activeSpan().context(), Format.Builtin.HTTP_HEADERS, carrier)
         carrier.get
       } else {
-        logger.warn("No active span found when adding tracing headers. Did you forget to activate a span?")
         requestHeader
       }
     } catch {
-      case e:Throwable =>
-        logger.error(e.getMessage)
-        requestHeader
+      case e:Throwable => requestHeader
     }
   }
-
-  def trace[Request, Response](serviceCall: Scope => ServerServiceCall[Request, Response])
-    (implicit executionContext: ExecutionContext): ServerServiceCall[Request, Response] = trace("Unnamed trace")(serviceCall)
 
   /**
     * Service call composition to enhance service implementation with active scope.
@@ -67,14 +59,16 @@ object Tracing {
     * @tparam Response - Lagom Response
     * @return Enhanced ServerServiceCall
     */
-  def trace[Request, Response](opName: String)(serviceCall: Scope => ServerServiceCall[Request, Response])
+  def trace[Request, Response](opName: String = "Unnamed trace", logger: Option[Logger] = None)(serviceCall: Scope => ServerServiceCall[Request, Response])
     (implicit executionContext: ExecutionContext): ServerServiceCall[Request, Response] =
     ServerServiceCall.compose { requestHeader =>
       import scala.collection.JavaConverters._
       val tracer = if (GlobalTracer.isRegistered && GlobalTracer.get() != null) {
         GlobalTracer.get()
       } else {
-        logger.warn("No tracer found, using No-op tracer")
+        logger.collect {
+          case l => l.warn("No tracer found, using No-op tracer")
+        }
         NoopTracerFactory.create()
       }
       try {
@@ -101,7 +95,11 @@ object Tracing {
           }
         }
       } catch {
-        case _: IllegalArgumentException => serviceCall(tracer.buildSpan(opName).startActive(false))
+        case e: IllegalArgumentException =>
+          logger.collect {
+            case l => l.error(e.getMessage)
+          }
+          serviceCall(tracer.buildSpan(opName).startActive(false))
       }
     }
 }

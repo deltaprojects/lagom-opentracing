@@ -1,15 +1,14 @@
 package com.deltaprojects.lagom.opentracing
 
 import io.opentracing.noop.NoopTracerFactory
-import io.opentracing.{Scope, SpanContext}
 import io.opentracing.propagation.{Format, TextMapExtractAdapter, TextMapInjectAdapter}
 import io.opentracing.tag.Tags
 import io.opentracing.util.GlobalTracer
-import org.slf4j.LoggerFactory
+import io.opentracing.{Scope, SpanContext}
+import org.slf4j.Logger
 
 trait TraceCQRS[+E] {
   val info: java.util.concurrent.ConcurrentHashMap[String, String] = new java.util.concurrent.ConcurrentHashMap[String, String]()
-  private val logger = LoggerFactory.getLogger(this.getClass)
   def withTracing: this.type = {
     val tracer = GlobalTracer.get()
     if (tracer.activeSpan() != null) {
@@ -21,11 +20,13 @@ trait TraceCQRS[+E] {
     }
   }
 
-  def extractScope(opName: String): Scope = {
+  def extractScope(opName: String, logger: Option[Logger] = None): Scope = {
     val tracer = if (GlobalTracer.isRegistered && GlobalTracer.get() != null) {
       GlobalTracer.get()
     } else {
-      logger.warn("No tracer found. Using No-op tracer")
+      logger.collect {
+        case l => l.warn("No tracer found. Using No-op tracer")
+      }
       NoopTracerFactory.create()
     }
     val activeSpan = tracer.extract(Format.Builtin.TEXT_MAP, new TextMapExtractAdapter(info))
