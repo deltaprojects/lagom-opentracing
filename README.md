@@ -20,7 +20,7 @@ This package provides simple helper methods for dealing with the OpenTracing hea
 
 ```sbt
 
-libraryDependencies += "com.deltaprojects" %% "lagom-opentracing" % "0.2.2"
+libraryDependencies += "com.deltaprojects" %% "lagom-opentracing" % "0.2.3"
 
 ```
 
@@ -101,7 +101,6 @@ override def behavior: Behavior =
       case (com@AddPost(content), ctx, state) if state.isEmpty =>
         val scope = com.extractScope("AddPost")
         ctx.thenPersist(PostAdded(entityId, content).withTracing) { evt => // with more tracing!
-          scope.span.finish()
           scope.close()
           ctx.reply(AddPostDone(entityId))
         }
@@ -110,14 +109,12 @@ override def behavior: Behavior =
       case (ev@PostAdded(postId, content), state) =>
         val scope = ev.extractScope("PostAdded")
         scope.span.setBaggageItem("content", content)
-        scope.span.finish()
         scope.close()
         BlogState(Some(content), published = false)
     }
     .onReadOnlyCommand[GetPost.type, PostContent] {
       case (com@GetPost, ctx, state) if !state.isEmpty =>
         val scope = com.extractScope("GetPost")
-        scope.span.finish()
         scope.close()
         ctx.reply(state.content.get)
     }

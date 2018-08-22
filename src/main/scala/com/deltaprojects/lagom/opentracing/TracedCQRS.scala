@@ -11,7 +11,7 @@ trait TraceCQRS[+E] {
   val info: java.util.concurrent.ConcurrentHashMap[String, String] = new java.util.concurrent.ConcurrentHashMap[String, String]()
   def withTracing: this.type = {
     val tracer = GlobalTracer.get()
-    if (tracer.activeSpan() != null) {
+    if (tracer != null && tracer.activeSpan() != null) {
       Tags.SPAN_KIND.set(tracer.activeSpan(), Tags.SPAN_KIND_PRODUCER)
       tracer.inject(tracer.activeSpan().context(), Format.Builtin.TEXT_MAP, new TextMapInjectAdapter(info))
       this
@@ -20,7 +20,7 @@ trait TraceCQRS[+E] {
     }
   }
 
-  def extractScope(opName: String, logger: Option[Logger] = None): Scope = {
+  def extractScope(opName: String, finishOnClose: Boolean = true, logger: Option[Logger] = None): Scope = {
     val tracer = if (GlobalTracer.isRegistered && GlobalTracer.get() != null) {
       GlobalTracer.get()
     } else {
@@ -31,8 +31,8 @@ trait TraceCQRS[+E] {
     }
     val activeSpan = tracer.extract(Format.Builtin.TEXT_MAP, new TextMapExtractAdapter(info))
     activeSpan match {
-      case p: SpanContext => tracer.buildSpan(opName).asChildOf(p).withTag(Tags.SPAN_KIND.getKey, Tags.SPAN_KIND_CONSUMER).startActive(false)
-      case _ => tracer.buildSpan(opName).withTag(Tags.SPAN_KIND.getKey, Tags.SPAN_KIND_CONSUMER).startActive(false)
+      case p: SpanContext => tracer.buildSpan(opName).asChildOf(p).withTag(Tags.SPAN_KIND.getKey, Tags.SPAN_KIND_CONSUMER).startActive(finishOnClose)
+      case _ => tracer.buildSpan(opName).withTag(Tags.SPAN_KIND.getKey, Tags.SPAN_KIND_CONSUMER).startActive(finishOnClose)
     }
   }
 }

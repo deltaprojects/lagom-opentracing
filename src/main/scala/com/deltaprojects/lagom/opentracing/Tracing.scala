@@ -46,7 +46,7 @@ object Tracing {
         requestHeader
       }
     } catch {
-      case e:Throwable => requestHeader
+      case _:Throwable => requestHeader
     }
   }
 
